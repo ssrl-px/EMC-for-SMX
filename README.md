@@ -15,4 +15,4 @@ The required packages include:
 
 See [the wiki page](https://github.com/tl578/EMC-for-SMX/wiki) for the execution details.
 
-Send comments, bug reports, etc. to [Ti-Yen Lan](tl578@cornell.edu)
+Send comments, bug reports, etc. to Ti-Yen Lan (tl578@cornell.edu).

@@ -10,9 +10,9 @@ It is executed on *Linux* using the *MPI* parallelization framework.
 The required packages include:
 
 - Requirements for *C*: *gcc*, *OpenMPI* and *OpenSSL*.
-- Requirements for *Python*: *NumPy*, *Matplotlib* and *FabIO*.
+- Requirements for *Python*: *Python2.7*, *NumPy*, *Matplotlib* and *FabIO*.
 - *Git*, *X Window System*.
 
 See [the wiki page](https://github.com/tl578/EMC-for-SMX/wiki) for the execution details.
 
-Send comments, bug reports, to: tl578@cornell.edu
+Send comments, bug reports, etc. to [Ti-Yen Lan](tl578@cornell.edu)

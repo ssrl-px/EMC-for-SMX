@@ -64,7 +64,7 @@ int main(int argc, char *argv[]){
 void make_powder(){
 
     int i, d, r, t, num_pix, pix_id, pix_val, num_peak, idx ;
-    int *frame_peak_count, count_relevant, *peak_sz_hist, *powder2d ;
+    int *frame_peak_count, count_relevant, *patch_sz_hist, *powder2d ;
     double (*radial_hist)[2], *reflection, (*peak_rvec)[3] ;
     double weighted_rvec[3], diff_rvec[3], val_sum, dist, rescale ;
     FILE *fp ;
@@ -72,7 +72,7 @@ void make_powder(){
     peak_rvec = malloc(total_pix * sizeof(*peak_rvec)) ;
     reflection = malloc(total_pix * sizeof(double)) ;
     frame_peak_count = calloc(num_data, sizeof(int)) ;
-    peak_sz_hist = calloc(nbin, sizeof(int)) ;
+    patch_sz_hist = calloc(nbin, sizeof(int)) ;
     powder2d = calloc(total_pix, sizeof(int)) ;
     radial_hist = malloc(nbin * sizeof(*radial_hist)) ;
     for (i = 0 ; i < nbin ; i++){
@@ -85,7 +85,7 @@ void make_powder(){
         fp = fopen(peakfiles[d].name, "r") ;
         num_peak = 0 ;
         while (1 == fscanf(fp, "%d", &num_pix)){
-            peak_sz_hist[num_pix] += 1 ;
+            patch_sz_hist[num_pix] += 1 ;
             if (num_pix < min_patch_sz || num_pix > max_patch_sz){
                 for (t = 0 ; t < num_pix ; t++)
                     fscanf(fp, "%d %d", &pix_id, &pix_val) ;
@@ -155,9 +155,9 @@ void make_powder(){
         fprintf(fp, "%d\n", frame_peak_count[d]) ;
     fclose(fp) ;
 
-    fp = fopen("peak-sz-count.dat", "w") ;
+    fp = fopen("patch-sz-count.dat", "w") ;
     for (i = min_patch_sz ; i < nbin ; i++)
-        fprintf(fp, "%d %d\n", i, peak_sz_hist[i]) ;
+        fprintf(fp, "%d %d\n", i, patch_sz_hist[i]) ;
     fclose(fp) ;
 
     fp = fopen("2d-pseudo-powder.dat", "w") ;
@@ -169,7 +169,7 @@ void make_powder(){
     free(peak_rvec) ;
     free(reflection) ;
     free(frame_peak_count) ;
-    free(peak_sz_hist) ;
+    free(patch_sz_hist) ;
     free(powder2d) ;
 }
 

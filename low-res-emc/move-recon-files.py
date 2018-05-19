@@ -27,10 +27,13 @@ for root, dirs, files in os.walk(prob_dir, topdown=True):
             continue
         dir_list.append(dir_name)
 
-out_dir = os.path.join(prob_dir, "low-res-recon")
-if os.path.exists(out_dir):
-    print("warning: {0:s} already exists!!".format(out_dir))
-    exit()
+out_id = 0
+dirname = "low-res-recon-{0:d}".format(out_id)
+out_dir = os.path.join(prob_dir, dirname)
+while (os.path.exists(out_dir) == True):
+    out_id += 1
+    dirname = "low-res-recon-{0:d}".format(out_id)
+    out_dir = os.path.join(prob_dir, dirname)
 
 cmd = "mkdir -p {0:s}".format(out_dir)
 p = Popen(cmd, shell=True)

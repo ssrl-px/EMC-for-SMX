@@ -1,12 +1,16 @@
 import numpy as np
 
-num_op = 8
+num_op = 16
 sym_op = []
 
-sym_op.append([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-sym_op.append([[-1, 0, 0], [0, -1, 0], [0, 0, 1]])
-sym_op.append([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
-sym_op.append([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
+sym_op.append([ [1, 0, 0], [0, 1, 0], [0, 0, 1] ])
+sym_op.append([ [0, -1, 0], [1, 0, 0], [0, 0, 1] ])
+sym_op.append([ [-1, 0, 0], [0, -1, 0], [0, 0, 1] ])
+sym_op.append([ [0, 1, 0], [-1, 0, 0], [0, 0, 1] ])
+sym_op.append([ [-1, 0, 0], [0, 1, 0], [0, 0, -1] ])
+sym_op.append([ [1, 0, 0], [0, -1, 0], [0, 0, -1] ])
+sym_op.append([ [0, 1, 0], [1, 0, 0], [0, 0, -1] ])
+sym_op.append([ [0, -1, 0], [-1, 0, 0], [0, 0, -1] ])
 
 fp = open("sym-op.dat", "w")
 line = "%d\n" % num_op

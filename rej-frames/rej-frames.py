@@ -2,7 +2,7 @@ from subprocess import *
 import numpy as np
 import os
 
-fp = open("../config.ini", "r")
+fp = open(sys.argv[1], "r")
 lines = fp.readlines()
 fp.close()
 
@@ -13,16 +13,23 @@ for t in range(length):
     if ("start_phi_file" in lines[t]):
         start_phi_file = lines[t].split(" = ")[1].strip()
 
+if ("A" in sys.argv[1]):
+    dir_hdr = "low-res-recon-A"
+elif ("B" in sys.argv[1]):
+    dir_hdr = "low-res-recon-B"
+else:
+    dir_hdr = "low-res-recon"
+
 data_id = 0
-dirname = "low-res-recon-{0:d}".format(data_id)
+dirname = "{0:s}-{1:d}".format(dir_hdr, out_id)
 data_dir = os.path.join(prob_dir, dirname)
 while (os.path.exists(data_dir) == True):
     data_id += 1
-    dirname = "low-res-recon-{0:d}".format(data_id)
+    dirname = "{0:s}-{1:d}".format(dir_hdr, out_id)
     data_dir = os.path.join(prob_dir, dirname)
 
 data_id -= 1
-dirname = "low-res-recon-{0:d}".format(data_id)
+dirname = "{0:s}-{1:d}".format(dir_hdr, out_id)
 data_dir = os.path.join(prob_dir, dirname)
 
 iter_max = 0
@@ -39,7 +46,7 @@ cmd = "gcc reject-frames.c -O3 -lm -o rej"
 p = Popen(cmd, shell=True)
 p.wait()
 
-cmd = "./rej ../config.ini {0:s} > run.log".format(prob_dir)
+cmd = "./rej {0:s} {1:s} > run.log".format(sys.argv[1], prob_dir)
 p = Popen(cmd, shell=True)
 p.wait()
 

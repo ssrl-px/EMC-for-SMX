@@ -32,9 +32,20 @@ for d in xrange(num_data):
     phi[d] /= (num_peak - num_diffuse_peak)
     phi_sum += phi[d]
 
-fout = open("start-phi.dat", "w")
 rescale = num_data/phi_sum
+fout = open("start-phi.dat", "w")
 for d in xrange(num_data):
     line = "%1.15e\n" % (phi[d]*rescale)
     fout.write(line)
 fout.close()
+
+fa = open("start-phi-A.dat", "w")
+fb = open("start-phi-B.dat", "w")
+for d in xrange(num_data):
+    line = "%1.15e\n" % (phi[d]*rescale)
+    if (d % 2 == 0):
+        fa.write(line)
+    else:
+        fb.write(line)
+fa.close()
+fb.close()

@@ -1,8 +1,9 @@
 from subprocess import *
 import numpy as np
+import sys
 import os
 
-fp = open("../config.ini", "r")
+fp = open(sys.argv[1], "r")
 lines = fp.readlines()
 fp.close()
 
@@ -27,12 +28,19 @@ for root, dirs, files in os.walk(prob_dir, topdown=True):
             continue
         dir_list.append(dir_name)
 
+if ("A" in sys.argv[1]):
+    dir_hdr = "low-res-recon-A"
+elif ("B" in sys.argv[1]):
+    dir_hdr = "low-res-recon-B"
+else:
+    dir_hdr = "low-res-recon"
+
 out_id = 0
-dirname = "low-res-recon-{0:d}".format(out_id)
+dirname = "{0:s}-{1:d}".format(dir_hdr, out_id)
 out_dir = os.path.join(prob_dir, dirname)
 while (os.path.exists(out_dir) == True):
     out_id += 1
-    dirname = "low-res-recon-{0:d}".format(out_id)
+    dirname = "{0:s}-{1:d}".format(dir_hdr, out_id)
     out_dir = os.path.join(prob_dir, dirname)
 
 cmd = "mkdir -p {0:s}".format(out_dir)

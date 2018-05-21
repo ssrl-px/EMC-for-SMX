@@ -1,5 +1,6 @@
 from subprocess import *
 import numpy as np
+import sys
 import os
 
 fp = open(sys.argv[1], "r")
@@ -21,15 +22,15 @@ else:
     dir_hdr = "low-res-recon"
 
 data_id = 0
-dirname = "{0:s}-{1:d}".format(dir_hdr, out_id)
+dirname = "{0:s}-{1:d}".format(dir_hdr, data_id)
 data_dir = os.path.join(prob_dir, dirname)
 while (os.path.exists(data_dir) == True):
     data_id += 1
-    dirname = "{0:s}-{1:d}".format(dir_hdr, out_id)
+    dirname = "{0:s}-{1:d}".format(dir_hdr, data_id)
     data_dir = os.path.join(prob_dir, dirname)
 
 data_id -= 1
-dirname = "{0:s}-{1:d}".format(dir_hdr, out_id)
+dirname = "{0:s}-{1:d}".format(dir_hdr, data_id)
 data_dir = os.path.join(prob_dir, dirname)
 
 iter_max = 0

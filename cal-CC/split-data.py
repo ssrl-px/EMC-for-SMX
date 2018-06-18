@@ -76,3 +76,11 @@ for t in xrange(length):
     fp2.write(linesB[t])
 fp1.close()
 fp2.close()
+
+cmd = "gcc split-data.c -O3 -lm -o split"
+p = Popen(cmd, shell=True)
+p.wait()
+
+cmd = "./split ../config.ini ../Data"
+p = Popen(cmd, shell=True)
+p.wait()

@@ -1,0 +1,7 @@
+# ignore the following file extensions
+*.log
+*.out
+*.dat
+*.bin
+*.tar
+*.o

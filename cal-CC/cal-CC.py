@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import os
 
 fp = open("../aux/sym-op.dat", "r")
 num_sym_op = np.int(fp.readline().strip())
@@ -15,7 +16,9 @@ fp.close()
 
 basis = np.zeros((3, 3))
 for i in range(3):
-    basis[i] = np.copy(np.array(lines[i].split()).astype(np.double))
+    values = np.array(lines[i].split()).astype(np.double)
+    for j in range(3):
+        basis[j][i] = values[j]
 
 rec_basis = np.zeros((3, 3))
 rec_basis[0] = np.copy(np.cross(basis[1], basis[2]))
@@ -26,6 +29,7 @@ vol = np.abs(np.dot(rec_basis[0], basis[0]))
 rec_basis[0] /= vol
 rec_basis[1] /= vol
 rec_basis[2] /= vol
+rec_basis = np.transpose(rec_basis)
 proj = np.linalg.inv(rec_basis)
 
 out_id = 0
@@ -45,7 +49,10 @@ while (os.path.exists(dir_A) == True and os.path.exists(dir_B) == True):
     iter_flag += 1
     dir_A = "{0:s}/high-res-recon-A-{1:d}/iter_flag-{2:d}".format(prob_dir, out_id, iter_flag)
     dir_B = "{0:s}/high-res-recon-B-{1:d}/iter_flag-{2:d}".format(prob_dir, out_id, iter_flag)
+
 iter_flag -= 1
+dir_A = "{0:s}/high-res-recon-A-{1:d}/iter_flag-{2:d}".format(prob_dir, out_id, iter_flag)
+dir_B = "{0:s}/high-res-recon-B-{1:d}/iter_flag-{2:d}".format(prob_dir, out_id, iter_flag)
 
 intens_file_A = "{0:s}/intens-mean-std.dat".format(dir_A)
 intens_file_B = "{0:s}/intens-mean-std.dat".format(dir_B)
@@ -78,11 +85,15 @@ for t in range(num_hkl):
     kval = hkl_indices[t][1]
     lval = hkl_indices[t][2]
     hkl = [hval, kval, lval]
+    hkl_id = "{0:d} {1:d} {2:d}".format(hval, kval, lval)
+    if (intensA[hkl_id][1] == 1):
+        continue
+
     rvec = np.zeros(3)
     for i in range(3):
         for j in range(3):
             rvec[i] += rec_basis[i][j] * hkl[j]
-    for s in range(num_sym):
+    for s in range(num_sym_op):
         rot_rvec = np.zeros(3)
         for i in range(3):
             for j in range(3):
@@ -91,10 +102,9 @@ for t in range(num_hkl):
         for i in range(3):
             for j in range(3):
                 new_hkl[i] += proj[i][j]*rot_rvec[j]
-
-        new_hval = np.int(new_hkl[0])
-        new_kval = np.int(new_hkl[1])
-        new_lval = np.int(new_hkl[2])
+        new_hval = np.int(np.round(new_hkl[0]))
+        new_kval = np.int(np.round(new_hkl[1]))
+        new_lval = np.int(np.round(new_hkl[2]))
         
         hkl_id = "{0:d} {1:d} {2:d}".format(new_hval, new_kval, new_lval)
         if (intensA[hkl_id][1] == 0):
@@ -122,16 +132,19 @@ inv_dq = 1. / (qval[1] - qval[0])
 ave_intensA = np.zeros(len_qval)
 ave_intensB = np.zeros(len_qval)
 count = np.zeros(len_qval, dtype=np.int)
+ave_qval = np.zeros(len_qval)
 for t in range(length):
     idx = np.int(np.round(unique_peaks[t][3]*inv_dq - 0.5))
     ave_intensA[idx] += unique_peaks[t][4]
     ave_intensB[idx] += unique_peaks[t][5]
+    ave_qval[idx] += unique_peaks[t][3]
     count[idx] += 1
 
 for i in range(len_qval):
     if (count[i] > 0):
         ave_intensA[i] /= count[i]
         ave_intensB[i] /= count[i]
+        ave_qval[i] /= count[i]
 
 var_AB = np.zeros(len_qval)
 var_AA = np.zeros(len_qval)
@@ -144,11 +157,15 @@ for t in range(length):
     var_AA[idx] += dA*dA
     var_BB[idx] += dB*dB
 
-CC_half = np.zeros(len_qval)
-CC_true = np.zeros(len_qval)
+qvals = []
+CC_half = []
+CC_true = []
 for i in range(len_qval):
-    CC_half[i] = var_AB[i]/np.sqrt(var_AA[i]*var_BB[i])
-    CC_true[i] = np.sqrt(2*CC_half[i]/(1+CC_half[i]))
+    if (count[i] > 0):
+        qvals.append(ave_qval[i])
+        cc_val = var_AB[i]/np.sqrt(var_AA[i]*var_BB[i])
+        CC_half.append(cc_val)
+        CC_true.append(np.sqrt(2*cc_val/(1+cc_val)))
 
-plt.plot(ave_qval, CC_true, 'b')
+plt.plot(qvals, CC_true, 'b')
 plt.show()

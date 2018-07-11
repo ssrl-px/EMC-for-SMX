@@ -49,3 +49,12 @@ p.wait()
 cmd = "./init {0:s} {1:s}".format(sys.argv[1], prob_dir)
 p = Popen(cmd, shell=True)
 p.wait()
+
+if ("A" in sys.argv[1]):
+    cmd = "mv ../aux/start_intensity.bin ../aux/start_intensity-A.bin"
+    p = Popen(cmd, shell=True)
+    p.wait()
+elif ("B" in sys.argv[1]):
+    cmd = "mv ../aux/start_intensity.bin ../aux/start_intensity-B.bin"
+    p = Popen(cmd, shell=True)
+    p.wait()

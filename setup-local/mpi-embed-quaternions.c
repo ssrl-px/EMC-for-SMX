@@ -45,6 +45,7 @@ int main(int argc, char* argv[]){
     MPI_Comm_size(MPI_COMM_WORLD, &nproc) ;
     MPI_Comm_rank(MPI_COMM_WORLD, &myid) ;
 
+    int r, rank ;
     double t1, t2 ;
     t1 = MPI_Wtime() ;
 
@@ -59,9 +60,25 @@ int main(int argc, char* argv[]){
 
     setup() ;
 
-    /* sort the duos in ascending order */
-    merge_sort(fine_quat, sorted_fine_quat, num_fine_rot, arg_map, sorted_arg_map) ;
-    check_sort() ;
+    for (rank = 0 ; rank < nproc ; rank++){
+        if (myid == rank){
+            arg_map = malloc(num_fine_rot * sizeof(int)) ;
+            sorted_arg_map = malloc(num_fine_rot * sizeof(int)) ;
+            for (r = 0 ; r < num_fine_rot ; r++){
+                arg_map[r] = r ;
+                sorted_arg_map[r] = r ;
+            }
+
+            sorted_fine_quat = malloc(num_fine_rot * sizeof(double *)) ;
+            for (r = 0 ; r < num_fine_rot ; r++)
+                sorted_fine_quat[r] = malloc(4 * sizeof(double)) ;
+
+            /* sort the duos in ascending order */
+            merge_sort(fine_quat, sorted_fine_quat, num_fine_rot, arg_map, sorted_arg_map) ;
+            check_sort() ;
+        }
+        MPI_Barrier(MPI_COMM_WORLD) ;
+    }
 
     /* generate reference table */
     explore_vicinity() ;
@@ -603,13 +620,6 @@ void setup(){
     }
     fclose(fp) ;
 
-    arg_map = malloc(num_fine_rot * sizeof(int)) ;
-    sorted_arg_map = malloc(num_fine_rot * sizeof(int)) ;
-    for (r = 0 ; r < num_fine_rot ; r++){
-        arg_map[r] = r ;
-        sorted_arg_map[r] = r ;
-    }
-
     double *fine_quat_r, *coarse_quat_r ;
     for (r = 0 ; r < num_fine_rot ; r++){
         fine_quat_r = fine_quat[r] ;
@@ -626,10 +636,6 @@ void setup(){
                 coarse_quat_r[i] *= -1 ;
         }
     }
-
-    sorted_fine_quat = malloc(num_fine_rot * sizeof(double *)) ;
-    for (r = 0 ; r < num_fine_rot ; r++)
-        sorted_fine_quat[r] = malloc(4 * sizeof(double)) ;
 }
 
 

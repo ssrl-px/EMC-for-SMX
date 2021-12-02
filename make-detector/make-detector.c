@@ -197,6 +197,17 @@ int main(int argc, char *argv[]){
     for (t = 0 ; t < total_pixel ; t++)
         fprintf(outFp2, "%d\n", pix_map[t]) ;
 
+    // Make binary files, the ASCII files segfaulted when read back in during make-background portion
+    FILE *outFp2_bin, *outFp3_bin;
+
+    outFp2_bin = fopen("pix-map.bin", "w") ;
+    fwrite(pix_map, sizeof(int), (size_t)total_pixel, outFp2_bin);
+    fclose(outFp2_bin);
+
+    outFp3_bin = fopen("rec2pix-map.bin", "w") ;
+    fwrite(rec2pix_map, sizeof(int), (size_t)total_pixel, outFp3_bin);
+    fclose(outFp3_bin);
+
     printf("cx = %.1f, cy = %.1f, Rstop = %.1f\n", cx, cy, Rstop) ;
     printf("qmax = %d, qmin = %d, num_pix = %d\n", qmax, qmin, Npix) ;
 

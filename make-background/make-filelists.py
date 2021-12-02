@@ -2,7 +2,11 @@
 make filelists
 
 usage:
-python make-filelists.py [path to dir that stores raw data] > run.log &
+python make-filelists.py [glob pointing to raw data cbfs (surrounded in quotes)] > run.log &
+
+e.g.
+
+python make-filelists.py "/path//data/data[1-8]/*cbf"
 
 makes:
 cbflist.dat, radiallist.dat, orienlist.dat
@@ -10,100 +14,44 @@ outlierlist.dat, peaklist.dat
 
 """
 
-from subprocess import *
+import numpy as np
 import sys
 import os
+import glob
 
-raw_data_dir = os.path.abspath(sys.argv[1])
+raw_cbffiles = glob.glob(sys.argv[1])
+
+print("Found %d cbf files in glob" % len(raw_cbffiles))
 new_data_dir = "{0:s}/Data".format(os.path.abspath("../"))
 
-dir_list = []
-for root, dirs, files in os.walk(raw_data_dir, topdown=True):
-    for name in dirs:
-        dir_name = os.path.join(root, name)
-        contents = os.listdir(dir_name)
-        if_cbf = 0
-        for f in contents:
-            if (f[-4:] == ".cbf"):
-                if_cbf = 1
-        if (if_cbf == 0):
-            continue
-        dir_list.append(dir_name)
+dirnames = set([os.path.dirname(f) for f in raw_cbffiles])
 
-dir_list = sorted(dir_list)
+outfolders = "radial-bg", "outlier"
+for d in dirnames:
+    new_d = os.path.join(new_data_dir, os.path.basename(d))
+    for d in outfolders:
+        sub_d = os.path.join(new_d, d)
+        if not os.path.exists(sub_d):
+            os.makedirs(sub_d)
+        print(sub_d)
 
-cbf_files = []
-radial_files = []
-orien_files = []
-outlier_files = []
-peak_files = []
 
-for src_dir in dir_list:
-    dir_name = src_dir.split(raw_data_dir)[1]
-    radial_dir = "{0:s}{1:s}/radial-bg".format(new_data_dir, dir_name)
-    cmd = "mkdir -p {0:s}".format(radial_dir)
-    p = Popen(cmd, shell=True)
-    p.wait()
-    
-    outlier_dir = "{0:s}{1:s}/outlier".format(new_data_dir, dir_name)
-    cmd = "mkdir -p {0:s}".format(outlier_dir)
-    p = Popen(cmd, shell=True)
-    p.wait()
-    
-    files = sorted(os.listdir(src_dir))
-    for f in files:
-        if (f[-4:] == ".cbf"):
-            cur_str = "{0:s}/{1:s}\n".format(src_dir, f)
-            cbf_files.append(cur_str)
+new_file_templates = {"ave_bg-%s.bin": (outfolders[0], [], "radiallist.dat"),
+                      "prob_orien-%s.dat": (outfolders[0], [], "orienlist.dat"),
+                      "outlier-%s.dat": (outfolders[1], [], "outlierlist.dat"),
+                      "peak-%s.dat": (outfolders[1], [], "peaklist.dat")}
 
-            fileid = f.split('_')[-1].split('.')[0]
-            cur_str = "{0:s}/ave_bg-{1:s}.bin\n".format(radial_dir, fileid)
-            radial_files.append(cur_str)
+for i_f, f in enumerate(raw_cbffiles):
+    raw_dirname = os.path.dirname(f)
+    new_dirname = os.path.join(new_data_dir, os.path.basename(raw_dirname))
 
-            cur_str = "{0:s}/prob_orien-{1:s}.dat\n".format(radial_dir, fileid)
-            orien_files.append(cur_str)
+    tag = os.path.basename(f).split("_")[-1].split(".cbf")[0]
+    for f_template, (subdir, store, _) in new_file_templates.items():
+        new_f = os.path.join(new_dirname, subdir, f_template % tag)
+        store.append(new_f)
+    print(i_f, len(raw_cbffiles))
 
-            cur_str = "{0:s}/outlier-{1:s}.dat\n".format(outlier_dir, fileid)
-            outlier_files.append(cur_str)
 
-            cur_str = "{0:s}/peak-{1:s}.dat\n".format(outlier_dir, fileid)
-            peak_files.append(cur_str)
-
-fp = open("cbflist.dat", "w")
-for line in cbf_files:
-    fp.write(line)
-fp.close()
-
-fp = open("radiallist.dat", "w")
-for line in radial_files:
-    fp.write(line)
-fp.close()
-
-fp = open("orienlist.dat", "w")
-for line in orien_files:
-    fp.write(line)
-fp.close()
-
-fp = open("outlierlist.dat", "w")
-for line in outlier_files:
-    fp.write(line)
-fp.close()
-
-fp = open("peaklist.dat", "w")
-for line in peak_files:
-    fp.write(line)
-fp.close()
-
-num_raw_data = len(cbf_files)
-fp = open("../config.ini", "r")
-lines = fp.readlines()
-fp.close()
-
-for t in range(len(lines)):
-    if ("num_raw_data" in lines[t]):
-        lines[t] = "num_raw_data = {0:d}\n".format(num_raw_data)
-
-fp = open("../config.ini", "w")
-for t in range(len(lines)):
-    fp.write(lines[t])
-fp.close()
+np.savetxt("cbflist.dat", raw_cbffiles, "%s")
+for _, store, outname in new_file_templates.values():
+    np.savetxt(outname, store, "%s")

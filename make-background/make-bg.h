@@ -7,7 +7,7 @@
 #include <time.h>
 #include <math.h>
 #include <mpi.h>
-#include <openssl/md5.h>
+//#include <openssl/md5.h>
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 
@@ -58,7 +58,7 @@ void make_count_thres() ;
 int ad_hoc_thres( double ) ;
 
 /* read-cbf.c */
-int read_cbf( int *, int ) ;
+//int read_cbf( int *, int ) ;
 int parse_header( char *, char *, char *, char *, int ) ;
 void byte_offset( int *, char *, int ) ;
 void md5sum( char *, char *, int ) ;

@@ -16,7 +16,21 @@ ave_bg_files, outlier_files, peak_files, data-info.dat
 */
 
 #include "make-bg.h"
+#include <cbf_simple.h>
 
+#include <sys/stat.h>   // stat
+#include <stdbool.h>    // bool type
+
+bool file_exists (char *filename) {
+  struct stat   buffer;
+  return (stat (filename, &buffer) == 0);
+}
+
+cbf_handle H; // = cbf_make_handle();
+//int success;
+//cbf_make_handle(H);
+
+//int success = cbf_make_handle(H);
 const double cdf_thres = 0.99999 ;
 const double vmax = 200. ;
 const double dv = 0.01 ;
@@ -34,6 +48,7 @@ int nproc, myid, qmax, qmin, num_pix, len_val, outlier_ct ;
 int *pix_map, *rec2pix_map, *qid_map, *queue ;
 int *peak_id, *peak_val, *peak_label, *peak_map, *peak_list ;
 int *det, *radial_ct, *count_thres, (*peak_location)[2] ;
+unsigned char * image;
 double detd, wl, px, hot_pix_thres, dq, cx, cy ;
 double *radial_val, *radial_weight, *ave_bg, (*pix)[4] ;
 filename *cbf_files, *outlierfiles, *radialfiles, *peakfiles ;
@@ -45,6 +60,13 @@ int main(int argc, char *argv[]){
 	MPI_Comm_size(MPI_COMM_WORLD, &nproc) ;
 	MPI_Comm_rank(MPI_COMM_WORLD, &myid) ;
 
+    if (myid==0){
+        printf("Help me please!\n");
+        printf("NUmber of mPI ranks=%d; I am rank %d!\n", nproc, myid);
+    }
+    MPI_Barrier(MPI_COMM_WORLD) ;
+
+
     double t1, t2 ;
     t1 = MPI_Wtime() ;
 
@@ -54,6 +76,7 @@ int main(int argc, char *argv[]){
     }
     else
         sprintf(config_file, "%s", argv[1]) ;
+
 
     if (!setup()){
         printf("setup fails!!\n") ;
@@ -84,6 +107,20 @@ void make_bg(){
     int s_num_data, photon_count, thres, *data_frame ;
     double avg_val, inv_dv = 1./dv ;
 
+    // cbflib vars (mostly borrowed from /usr/local/dcs/diffimage/minicbf.h
+    int error;
+    unsigned int compression;
+    int binary_id, minelement, maxelement;
+    size_t elsize, elements;
+    int elsigned, elunsigned;
+    const char *byteorder = "little_endian";
+    size_t dim1;
+    size_t dim2;
+    size_t dim3;
+    size_t padding;
+
+    det = (int*) malloc(total_pix * sizeof(int));
+    image = (unsigned char *)malloc(total_pix * sizeof(int));
     data_frame = malloc(num_pix * sizeof(int)) ;
     if (num_data % nproc == 0)
         s_num_data = num_data / nproc ;
@@ -98,14 +135,32 @@ void make_bg(){
     if (dmax > num_data)
         dmax = num_data ;
 
+    int num_processed = 0;
     for (d = dmin ; d < dmax ; d++){
 
         if (myid == 0){
-            if ((d - dmin) % 1000 == 0)
-                printf("d = %d\n", d - dmin) ;
+            printf("Reading CBF %d, %s\n",d,  cbf_files[d].name);
         }
 
-        read_cbf(det, d) ;
+        if ( num_processed > 0 || file_exists(radialfiles[d].name)){
+            num_processed +=1;
+            continue;
+        }
+        fp = fopen(cbf_files[d].name, "rb");
+        error = cbf_make_handle (&H);
+        error  = cbf_read_file(H, fp , MSG_DIGESTNOW);
+
+        cbf_find_tag(H, "_array_data.data" );
+        error = cbf_get_integerarrayparameters_wdims( H,
+            &compression, &binary_id, &elsize, &elsigned, &elunsigned,
+            &elements, &minelement, &maxelement, &byteorder,
+            &dim1, &dim2, &dim3, &padding );
+
+        size_t elements_read;
+        error = cbf_get_integerarray( H, &binary_id, (void*)image,
+                        elsize, elsigned, elements, &elements_read);
+        cbf_free_handle(H);
+        det = (int*)image;
 
         for (t = 0 ; t < num_pix ; t++){
             pid = rec2pix_map[t] ;
@@ -200,6 +255,7 @@ void make_bg(){
         mask_rings() ;
         peak_finder(d) ;
 
+        //printf(" -- Wrote radial file as %d elements %s\n", qlen, radialfiles[d].name);
         fp = fopen(radialfiles[d].name, "wb") ;
         fwrite(ave_bg, sizeof(double), qlen, fp) ;
         fclose(fp) ;
@@ -217,7 +273,9 @@ void make_bg(){
         /* reset peak_map */
         for (t = 0 ; t < outlier_ct ; t++)
             peak_map[peak_id[t]] = -1 ;
+        num_processed  += 1;
     }
+
 
     if (myid == 0){
         fp = fopen("data-info.dat", "w") ;
@@ -543,7 +601,7 @@ int setup(){
     for (d = 0 ; d < num_data ; d++)
         fscanf(fp, "%s", cbf_files[d].name) ;
     fclose(fp) ;
-
+    printf("CBF files total=%d\n", num_data);
     outlierfiles = malloc(num_data * sizeof(filename)) ;
     fp = fopen("outlierlist.dat", "r") ;
     for (d = 0 ; d < num_data ; d++)
@@ -566,11 +624,13 @@ int setup(){
 
     total_pix = num_row*num_col ;
     pix_map = malloc(total_pix * sizeof(int)) ;
-    sprintf(pixmap_file, "%s/make-detector/pix-map.dat", home_dir) ;
-    fp = fopen(pixmap_file, "r") ;
-    for (t = 0 ; t < total_pix ; t++)
-        fscanf(fp, "%d", &pix_map[t]) ;
+    sprintf(pixmap_file, "%s/make-detector/pix-map.bin", home_dir) ;
+    fp = fopen(pixmap_file, "rb") ;
+
+    printf("Total pix=%d, %s\n", total_pix, pixmap_file);
+    fread(pix_map,sizeof(pix_map[0]) ,total_pix, fp );
     fclose(fp) ;
+    printf("Read the pixel map!\n");
 
     peak_id = calloc(total_pix, sizeof(int)) ;
     peak_val = calloc(total_pix, sizeof(int)) ;
@@ -608,10 +668,11 @@ int setup(){
     fclose(fp) ;
 
     rec2pix_map = malloc(num_pix * sizeof(int)) ;
-    sprintf(rec2pixmap_file, "%s/make-detector/rec2pix-map.dat", home_dir) ;
+    sprintf(rec2pixmap_file, "%s/make-detector/rec2pix-map.bin", home_dir) ;
     fp = fopen(rec2pixmap_file, "r") ;
-    for (t = 0 ; t < num_pix ; t++)
-        fscanf(fp, "%d", &rec2pix_map[t]) ;
+    fread(rec2pix_map,sizeof(rec2pix_map[0]) ,num_pix, fp );
+    //for (t = 0 ; t < num_pix ; t++)
+    //    fscanf(fp, "%d", &rec2pix_map[t]) ;
     fclose(fp) ;
 
     det = malloc(total_pix * sizeof(int)) ;
@@ -644,6 +705,7 @@ void free_mem(){
     free(qid_map) ;
     free(rec2pix_map) ;
     free(det) ;
+    free(image);
     free(radial_ct) ;
     free(peak_location) ;
     free(radial_val) ;

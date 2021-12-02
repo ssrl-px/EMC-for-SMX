@@ -62,7 +62,6 @@ for i in range(num_row):
 fp.close()
 MASK = np.array(MASK)
 MASK.tofile("MASK.bin", format="%d") 
-exit()
 img[mask == 1] = 0.
 img = np.log10(img + 1.)
 fig, ax = plt.subplots()

@@ -82,6 +82,7 @@ void make_powder(){
 
     count_relevant = 0 ;
     for (d = 0 ; d < num_data ; d++){
+        printf("Analyzing pattern %d\n", d);
         fp = fopen(peakfiles[d].name, "r") ;
         num_peak = 0 ;
         while (1 == fscanf(fp, "%d", &num_pix)){

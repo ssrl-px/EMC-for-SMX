@@ -48,6 +48,7 @@ mask[img < 0] = 1
 mask[img > short_max] = 1
 
 fp = open("../aux/mask.dat", "w")
+MASK = []
 for i in range(num_row):
     for j in range(num_col):
         x = i - c_row
@@ -56,9 +57,12 @@ for i in range(num_row):
         if (y < 0 and np.abs(x) < 110):
             mask[i][j] = 1
         tmp = "{0:d}\n".format(mask[i][j])
+        MASK.append(mask[i][j])
         fp.write(tmp)
 fp.close()
-
+MASK = np.array(MASK)
+MASK.tofile("MASK.bin", format="%d") 
+exit()
 img[mask == 1] = 0.
 img = np.log10(img + 1.)
 fig, ax = plt.subplots()

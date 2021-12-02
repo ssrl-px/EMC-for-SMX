@@ -91,19 +91,22 @@ int main(int argc, char *argv[]){
     rec2pix_map_cpy = malloc(total_pixel * sizeof(int)) ;
     qval_arr = malloc(total_pixel * sizeof(double)) ;
     qval_arr_cpy = malloc(total_pixel * sizeof(double)) ;
+    for(int i=0; i< total_pixel; i++)
+	    mask[i] = 0;
 
     /* masked pixels: 1, unmasked pixels: 0 */
-    sprintf(mask_file, "%s/aux/mask.dat", home_dir) ;
-    fp = fopen(mask_file, "r") ;
-    for (i = 0 ; i < total_pixel ; i++)
-        fscanf(fp, "%d", &mask[i]) ;
-    fclose(fp) ;
+    fp = fopen("MASK.bin", "rb") ;
+    fread(mask,sizeof(mask[0]) ,total_pixel, fp );
+    //for (int i=0; i < 20; i++)
+    //    printf("MASK %d\n", mask[i]);
+    fclose(fp);
 
     norm = 0. ;
     for (i = 0 ; i < 3 ; i++)
         norm += beam_vec[i]*beam_vec[i] ;
     norm = sqrt(norm) ;
-    
+
+    printf("det dist=%f meters, pxsize=%f meters, wavelength=%f Angstrom\n", detd, px, wl);
     D = (detd/px) * norm/fabs(beam_vec[2]) ;
     for (i = 0 ; i < 3 ; i++)
         beam_vec[i] *= D/norm ;

@@ -15,6 +15,7 @@ ave_bg_files, outlier_files, peak_files, data-info.dat
 
 */
 
+
 #include "make-bg.h"
 #include <cbf_simple.h>
 
@@ -139,10 +140,11 @@ void make_bg(){
     for (d = dmin ; d < dmax ; d++){
 
         if (myid == 0){
-            printf("Reading CBF %d, %s\n",d,  cbf_files[d].name);
+            printf("Reading CBF %d / %d, %s\n",d, dmax,  cbf_files[d].name);
         }
 
-        if ( num_processed > 0 || file_exists(radialfiles[d].name)){
+        //if ( num_processed > 0 || file_exists(radialfiles[d].name)){
+        if (file_exists(radialfiles[d].name)){
             num_processed +=1;
             continue;
         }

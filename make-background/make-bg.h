@@ -8,8 +8,8 @@
 #include <math.h>
 #include <mpi.h>
 //#include <openssl/md5.h>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
+//#include <openssl/bio.h>
+//#include <openssl/evp.h>
 
 extern const double cdf_thres ;
 extern const double vmax ;

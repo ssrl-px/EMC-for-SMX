@@ -1,6 +1,7 @@
 /*
 make the azimuthally averaged background
 & label the outlier pixels and Bragg peak candidates
+
 data frames are read in the cbf format
 
 usage:
@@ -14,8 +15,7 @@ makes:
 ave_bg_files, outlier_files, peak_files, data-info.dat
 
 */
-
-
+#include <unistd.h>
 #include "make-bg.h"
 #include <cbf_simple.h>
 
@@ -62,7 +62,6 @@ int main(int argc, char *argv[]){
 	MPI_Comm_rank(MPI_COMM_WORLD, &myid) ;
 
     if (myid==0){
-        printf("Help me please!\n");
         printf("NUmber of mPI ranks=%d; I am rank %d!\n", nproc, myid);
     }
     MPI_Barrier(MPI_COMM_WORLD) ;
@@ -89,12 +88,16 @@ int main(int argc, char *argv[]){
 
     MPI_Barrier(MPI_COMM_WORLD) ;
     make_bg() ;
+    MPI_Barrier(MPI_COMM_WORLD) ;
     free_mem() ;
 
     MPI_Barrier(MPI_COMM_WORLD) ;
+
     t2 = MPI_Wtime() ;
-    if (myid == 0)
+    if (myid == 0){
+        printf("Processed %d CBFs across all ranks!\n", num_data);
         printf("elapsed time = %.0f sec\n", t2-t1) ;
+    }
 
     MPI_Finalize() ;
     return 0 ;
@@ -102,7 +105,6 @@ int main(int argc, char *argv[]){
 
 
 void make_bg(){
-
     FILE *fp ;
     int i, d, t, dmin, dmax, pid, qid, idx ;
     int s_num_data, photon_count, thres, *data_frame ;
@@ -119,8 +121,10 @@ void make_bg(){
     size_t dim2;
     size_t dim3;
     size_t padding;
-
+    size_t elements_read;
     det = (int*) malloc(total_pix * sizeof(int));
+    for(i=0; i < total_pix; i++)
+	    det[i]=0;
     image = (unsigned char *)malloc(total_pix * sizeof(int));
     data_frame = malloc(num_pix * sizeof(int)) ;
     if (num_data % nproc == 0)
@@ -140,15 +144,15 @@ void make_bg(){
     for (d = dmin ; d < dmax ; d++){
 
         if (myid == 0){
-            printf("Reading CBF %d / %d, %s\n",d, dmax,  cbf_files[d].name);
+          printf("Reading CBF %d / %d, %s\n",d, dmax,  cbf_files[d].name);
         }
 
-        //if ( num_processed > 0 || file_exists(radialfiles[d].name)){
-        if (file_exists(radialfiles[d].name)){
-            num_processed +=1;
-            continue;
-        }
-        fp = fopen(cbf_files[d].name, "rb");
+        //if (file_exists(radialfiles[d].name)){
+        //    num_processed +=1;
+        //    continue;
+        //}
+        
+	fp = fopen(cbf_files[d].name, "rb");
         error = cbf_make_handle (&H);
         error  = cbf_read_file(H, fp , MSG_DIGESTNOW);
 
@@ -158,11 +162,10 @@ void make_bg(){
             &elements, &minelement, &maxelement, &byteorder,
             &dim1, &dim2, &dim3, &padding );
 
-        size_t elements_read;
-        error = cbf_get_integerarray( H, &binary_id, (void*)image,
-                        elsize, elsigned, elements, &elements_read);
+        error = cbf_get_integerarray( H, &binary_id, (void*)det,
+                        sizeof(int), elsigned, elements, &elements_read);
         cbf_free_handle(H);
-        det = (int*)image;
+        //det = (int*)image;
 
         for (t = 0 ; t < num_pix ; t++){
             pid = rec2pix_map[t] ;
@@ -279,27 +282,27 @@ void make_bg(){
     }
 
 
-    if (myid == 0){
-        fp = fopen("data-info.dat", "w") ;
-        fclose(fp) ;
-    }
-    MPI_Barrier(MPI_COMM_WORLD) ;
+    //if (myid == 0){
+    //    fp = fopen("data-info.dat", "w") ;
+    //    fclose(fp) ;
+    //}
+    //MPI_Barrier(MPI_COMM_WORLD) ;
 
-    for (i = 0 ; i < nproc ; i++){
-        if (myid == i){
-            fp = fopen("data-info.dat", "a") ;
-            for (d = dmin ; d < dmax ; d++){
-                fprintf(fp, "%d ", data_info[d].row_size) ;
-                fprintf(fp, "%d ", data_info[d].col_size) ;
-                fprintf(fp, "%.1f %.1f ", data_info[d].c_row, data_info[d].c_col) ;
-                fprintf(fp, "%1.5e ", data_info[d].exposure) ;
-                fprintf(fp, "%1.5e ", data_info[d].wl) ;
-                fprintf(fp, "%1.5e\n", data_info[d].detd) ;
-            }
-            fclose(fp) ;
-        }
-        MPI_Barrier(MPI_COMM_WORLD) ;
-    }
+    //for (i = 0 ; i < nproc ; i++){
+    //    if (myid == i){
+    //        fp = fopen("data-info.dat", "a") ;
+    //        for (d = dmin ; d < dmax ; d++){
+    //            fprintf(fp, "%d ", data_info[d].row_size) ;
+    //            fprintf(fp, "%d ", data_info[d].col_size) ;
+    //            fprintf(fp, "%.1f %.1f ", data_info[d].c_row, data_info[d].c_col) ;
+    //            fprintf(fp, "%1.5e ", data_info[d].exposure) ;
+    //            fprintf(fp, "%1.5e ", data_info[d].wl) ;
+    //            fprintf(fp, "%1.5e\n", data_info[d].detd) ;
+    //        }
+    //        fclose(fp) ;
+    //    }
+    //    MPI_Barrier(MPI_COMM_WORLD) ;
+    //}
 
     free(data_frame) ;
 }
@@ -603,7 +606,7 @@ int setup(){
     for (d = 0 ; d < num_data ; d++)
         fscanf(fp, "%s", cbf_files[d].name) ;
     fclose(fp) ;
-    printf("CBF files total=%d\n", num_data);
+    if(myid==0)printf("CBF files total=%d\n", num_data);
     outlierfiles = malloc(num_data * sizeof(filename)) ;
     fp = fopen("outlierlist.dat", "r") ;
     for (d = 0 ; d < num_data ; d++)
@@ -623,16 +626,16 @@ int setup(){
     fclose(fp) ;
 
     data_info = malloc(num_data * sizeof(frame_info)) ;
-
     total_pix = num_row*num_col ;
     pix_map = malloc(total_pix * sizeof(int)) ;
     sprintf(pixmap_file, "%s/make-detector/pix-map.bin", home_dir) ;
     fp = fopen(pixmap_file, "rb") ;
 
-    printf("Total pix=%d, %s\n", total_pix, pixmap_file);
+    if(myid==0)printf("Total pix=%d, %s\n", total_pix, pixmap_file);
     fread(pix_map,sizeof(pix_map[0]) ,total_pix, fp );
     fclose(fp) ;
-    printf("Read the pixel map!\n");
+    
+    if (myid==0)printf("Read the pixel map!\n");
 
     peak_id = calloc(total_pix, sizeof(int)) ;
     peak_val = calloc(total_pix, sizeof(int)) ;
@@ -683,6 +686,7 @@ int setup(){
     radial_val = malloc(qlen * sizeof(double)) ;
     radial_weight = malloc(qlen * sizeof(double)) ;
     ave_bg = malloc(qlen * sizeof(double)) ;
+
     
     make_count_thres() ;
     return 1 ;
